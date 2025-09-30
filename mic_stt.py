@@ -8,13 +8,46 @@ import os
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-# Model path (update this to match where you downloaded the model)
-model_id = os.path.expanduser("~/whisper-models/whisper-large-v3")
+# Model path - check multiple locations
+model_paths = [
+    "/work/model/whisper-large-v3",
+    os.path.expanduser("~/whisper-models/whisper-large-v3"),
+    "./whisper-large-v3"
+]
+
+model_id = None
+for path in model_paths:
+    if os.path.exists(path) and os.path.isdir(path):
+        # Check if model files exist
+        if os.path.exists(os.path.join(path, "config.json")):
+            model_id = path
+            print(f"Found model at: {model_id}")
+            break
+
+if model_id is None:
+    print("Model not found locally. Downloading from HuggingFace...")
+    model_id = "openai/whisper-large-v3"
+    print("This may take a while...")
 
 print("Loading model...")
-model = AutoModelForSpeechSeq2Seq.from_pretrained(
-    model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
-)
+try:
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        model_id,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
+        local_files_only=(model_id != "openai/whisper-large-v3")
+    )
+except Exception as e:
+    print(f"Error loading model: {e}")
+    print("\nTrying to download model...")
+    model_id = "openai/whisper-large-v3"
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        model_id,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True
+    )
 model.to(device)
 
 processor = AutoProcessor.from_pretrained(model_id)
