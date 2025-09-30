@@ -6,8 +6,7 @@ FROM nvcr.io/nvidia/pytorch:23.12-py3
 RUN pip install transformers accelerate datasets
 
 # Installing system packages using apt-get
-RUN apt-get update && apt-get install -y git-lfs ffmpeg
-RUN apt-get install libportaudio2
+RUN apt-get update && apt-get install -y git-lfs ffmpeg libportaudio2 portaudio19-dev alsa-utils
 
 WORKDIR /workspace
 COPY . /workspace

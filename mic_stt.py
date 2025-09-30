@@ -33,6 +33,31 @@ pipe = pipeline(
 )
 
 print("Model loaded successfully!")
+
+# Check available audio devices
+print("\nAvailable audio devices:")
+print(sd.query_devices())
+
+# Get default input device
+try:
+    default_device = sd.default.device[0]
+    device_info = sd.query_devices(default_device, 'input')
+    print(f"\nUsing device: {device_info['name']}")
+    print(f"Default sample rate: {device_info['default_samplerate']}")
+except Exception as e:
+    print(f"\nWarning: Could not detect default device: {e}")
+    print("Attempting to use first available input device...")
+    devices = sd.query_devices()
+    input_devices = [i for i, d in enumerate(devices) if d['max_input_channels'] > 0]
+    if input_devices:
+        default_device = input_devices[0]
+        device_info = sd.query_devices(default_device, 'input')
+        sd.default.device = default_device
+        print(f"Using device: {device_info['name']}")
+    else:
+        print("ERROR: No input devices found!")
+        exit(1)
+
 print("\n" + "="*50)
 print("Recording Settings:")
 print("  - Sample Rate: 16000 Hz")
@@ -43,10 +68,14 @@ print("="*50 + "\n")
 def record_audio(duration=5, sample_rate=16000):
     """Record audio from microphone"""
     print(f"Recording for {duration} seconds...")
-    audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float32')
-    sd.wait()
-    print("Recording finished!")
-    return audio.squeeze()
+    try:
+        audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float32')
+        sd.wait()
+        print("Recording finished!")
+        return audio.squeeze()
+    except Exception as e:
+        print(f"Recording error: {e}")
+        raise
 
 # Main loop
 try:
